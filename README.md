@@ -1,0 +1,1 @@
+# TAAC_AnomalyDetection_in_MVTecDataset
