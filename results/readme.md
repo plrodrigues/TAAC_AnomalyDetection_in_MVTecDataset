@@ -1,0 +1,1 @@
+To store images with reslts: e.g. plot metric results or masks for reporting.

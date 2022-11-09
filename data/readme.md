@@ -1,0 +1,1 @@
+To store any intermediate data, while developing, but without committing it.
