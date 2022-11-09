@@ -127,3 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Avoid csv, txt, and json files
+**.csv
+**.txt
+**.json
