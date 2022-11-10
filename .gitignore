@@ -132,3 +132,6 @@ dmypy.json
 **.csv
 **.txt
 **.json
+
+# Don't push raw dataset 
+data/capsule
