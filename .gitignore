@@ -134,4 +134,7 @@ dmypy.json
 **.json
 
 # Don't push raw dataset 
-data/capsule
+data/*
+
+# For mac devices
+.DS_Store
