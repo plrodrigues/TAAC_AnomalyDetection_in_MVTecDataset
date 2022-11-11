@@ -7,7 +7,7 @@ Inside [/data](../data/) you should have:
 - [/cable](/data/cable/)
 - [/capsule](/data/capsule/)
 - [/carpet](/data/carpet/)
-- [/gri](/data/grid)
+- [/grid](/data/grid)
 - [/hazelnut](/data/hazelnut/)
 - [/leather](/data/leather/)
 - [/metal_nut](/data/metal_nut/)

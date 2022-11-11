@@ -1,9 +1,13 @@
-from constants import DATA_PATH
+from constants import DATA_PATH, DIR_SEP
 
 import tarfile, glob, os
 from torch import permute, zeros
 from torch.utils.data import Dataset
 from torchvision.io import read_image, ImageReadMode
+
+
+def current_dir():
+    return os.getcwd()
 
 
 def extract_tar(input_path, output_path="."):
@@ -79,11 +83,10 @@ class MVTECTestDataset(Dataset):
             if dir == "good" and flag:
                 self.normal_index = len(test_data)    
                 flag = False
-
-            for name in glob.glob(os.path.join(path, dir) + r"\*.png"):
+            for name in glob.glob(os.path.join(current_dir(), path, dir) + DIR_SEP + "*.png"):
                 if dir == "good":
                     self.normal_count += 1
-        
+                print('good path: ', name)
                 image = read_image(name, mode=ImageReadMode.RGB)
                 image = permute(image, (1, 2, 0)) # (width, height, channels)
                 test_data.append(image)
@@ -92,7 +95,7 @@ class MVTECTestDataset(Dataset):
         path = os.path.join(self.path, "ground_truth")
 
         for dir in os.listdir(path):
-            for name in glob.glob(os.path.join(path, dir) + r"\*.png"):
+            for name in glob.glob(os.path.join(path, dir) + DIR_SEP + "*.png"):
                 image = read_image(name, mode=ImageReadMode.RGB)
                 image = permute(image, (1, 2, 0)) # (width, height, channels)
                 temp.append(image)
