@@ -41,7 +41,7 @@ class MVTECTrainDataset(Dataset):
         train_data = []
         path = os.path.join(self.path, "train") 
         for dir in os.listdir(path):
-            for name in glob.glob(os.path.join(path, dir) + r"\*.png"):
+            for name in glob.glob(os.path.join(path, dir) + DIR_SEP + "*.png"):
                 image = read_image(name, mode=ImageReadMode.RGB)
                 image = permute(image, (1, 2, 0)) # (width, height, channels)
                 train_data.append(image)
