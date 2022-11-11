@@ -1,4 +1,4 @@
-from constants import DATA_PATH, DIR_SEP
+from src.commons.constants import DATA_PATH, DIR_SEP
 
 import tarfile, glob, os
 from torch import permute, zeros
