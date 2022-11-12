@@ -133,6 +133,9 @@ dmypy.json
 **.txt
 **.json
 
+# except requirements.txt
+!requirements.txt
+
 # Don't push raw dataset 
 data/*
 
