@@ -143,5 +143,3 @@ if __name__ == "__main__":
     ax2.set_title('Ground truth mask')
     fig.suptitle(ex_name)
     plt.show()
-
-    print(dataset.normal_index, dataset.normal_count)
