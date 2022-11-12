@@ -1,4 +1,4 @@
-# TAAC: AnomalyDetection using the MVTecDataset
+# TAAC: Anomaly Detection using the MVTecDataset
 
 
 ## Project structure
@@ -18,7 +18,7 @@
 
 ## Conda environment
 
-- create the conda environment with the packages defined in 8[equirements.txt](/requirements.txt)
+- create the conda environment with the packages defined in [equirements.txt](/requirements.txt)
 ```sh
 python -m venv venv_taac .
 ```
@@ -28,7 +28,7 @@ python -m venv venv_taac .
 venv_taac
 ```
 
-- install pachages
+- install packages
 ```sh
 python -m pip install -r requirements.txt
 ```
