@@ -133,5 +133,15 @@ dmypy.json
 **.txt
 **.json
 
+# except requirements.txt
+!requirements.txt
+
 # Don't push raw dataset 
-data/capsule
+data/*
+
+# For mac devices
+.DS_Store
+
+# For venv
+*.cfg
+/venv_taac/

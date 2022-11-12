@@ -1,9 +1,14 @@
-from constants import DATA_PATH
+from src.commons.constants import DATA_PATH, DIR_SEP
 
+import logging
 import tarfile, glob, os
-from torch import permute, zeros
+import torch
 from torch.utils.data import Dataset
 from torchvision.io import read_image, ImageReadMode
+
+
+def current_dir():
+    return os.getcwd()
 
 
 def extract_tar(input_path, output_path="."):
@@ -37,9 +42,8 @@ class MVTECTrainDataset(Dataset):
         train_data = []
         path = os.path.join(self.path, "train") 
         for dir in os.listdir(path):
-            for name in glob.glob(os.path.join(path, dir) + r"\*.png"):
+            for name in glob.glob(os.path.join(path, dir) + DIR_SEP + "*.png"):
                 image = read_image(name, mode=ImageReadMode.RGB)
-                image = permute(image, (1, 2, 0)) # (width, height, channels)
                 train_data.append(image)
         return train_data
                 
@@ -60,70 +64,82 @@ class MVTECTestDataset(Dataset):
         self.normal_count = 0
         self.normal_index = 0
 
-        self.test_data, self.ground_truth = self.load_data()
+        self.test_data, self.ground_truth, self.class_and_id = self.load_data()
    
     def __len__(self):
         return len(self.test_data)
 
     def __getitem__(self, idx):
         return {"test": self.test_data[idx],
-                "ground_truth": self.ground_truth[idx]}
+                "ground_truth": self.ground_truth[idx],
+                "class_and_id": self.class_and_id[idx]}
         
-
     def load_data(self):
-        test_data = []
-        path = os.path.join(self.path, "test") 
+        test_data_img = []
+        test_path = os.path.join(self.path, "test") 
+        class_and_id = []
 
-        flag = True
-        for dir in os.listdir(path):
-            if dir == "good" and flag:
-                self.normal_index = len(test_data)    
-                flag = False
+        # test images
+        for dir in os.listdir(test_path): # for all test categories (crack, poke, scratch, ...), including good
+            for name in glob.glob(os.path.join(test_path, dir) + DIR_SEP + "*.png"):
+                image = read_image(name, mode=ImageReadMode.RGB)
+                test_data_img.append(image)
+                class_and_id.append(name.replace(test_path + DIR_SEP, '').replace('.png', ''))
 
-            for name in glob.glob(os.path.join(path, dir) + r"\*.png"):
-                if dir == "good":
-                    self.normal_count += 1
+        logging.debug(f"{len(class_and_id)} test images loaded")
         
-                image = read_image(name, mode=ImageReadMode.RGB)
-                image = permute(image, (1, 2, 0)) # (width, height, channels)
-                test_data.append(image)
+        # ground truth masks
+        mask_path = os.path.join(self.path, "ground_truth")
+        logging.debug(f"Loading {len(class_and_id)} masks, from {mask_path} dir")
 
-        temp = []
-        path = os.path.join(self.path, "ground_truth")
+        ground_truth = []
+        for img_class_id in class_and_id:
+            mask_name = os.path.join(mask_path, img_class_id) + "_mask.png"
+            logging.debug(f'Loading respective masks: {mask_name}')
+            if 'good' in mask_name: 
+                logging.debug(f'{img_class_id}, good')
+                image = torch.zeros(test_data_img[0].shape)
+            else: 
+                logging.debug(f'{img_class_id}, not good')
+                image = read_image(mask_name, mode=ImageReadMode.RGB)
+            ground_truth.append(image)
 
-        for dir in os.listdir(path):
-            for name in glob.glob(os.path.join(path, dir) + r"\*.png"):
-                image = read_image(name, mode=ImageReadMode.RGB)
-                image = permute(image, (1, 2, 0)) # (width, height, channels)
-                temp.append(image)
-
-        null_masks = [zeros(test_data[0].shape) for _ in range(self.normal_count)]
-        ground_truth = temp[:self.normal_index] + null_masks + temp[self.normal_index:]
-
-        return test_data, ground_truth
+        return test_data_img, ground_truth, class_and_id
 
 
 if __name__ == "__main__":
+
+    # Define the logging level
+    logging.getLogger().setLevel(logging.INFO)
+
     # extract_tar(TARFILE_PATH, DATA_PATH)
     import matplotlib.pyplot as plt
     cat = "capsule"
-    dataset = MVTECTestDataset(DATA_PATH, cat)
+    test_dataset = MVTECTestDataset(DATA_PATH, cat)
 
-    print(len(dataset), len(dataset.test_data), len(dataset.ground_truth))
-    sample = dataset[0]
-    img, mask = sample["test"], sample["ground_truth"]
-    plt.imshow(img)
-    plt.show()
-    plt.imshow(mask, cmap="spring", alpha=0.5, vmax=mask.max()/2)
+    print(len(test_dataset), len(test_dataset.test_data), len(test_dataset.ground_truth), len(test_dataset.class_and_id))
+    sample = test_dataset[0]
+    img, mask, ex_name = sample["test"], sample["ground_truth"], sample['class_and_id']
+    
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5), sharex=True, sharey=True)
+    ax1.imshow(torch.permute(img, (1, 2, 0)))
+    ax1.set_title('Raw image')
+    ax2.imshow(torch.permute(img, (1, 2, 0)))
+    ax2.imshow(torch.permute(mask, (1, 2, 0)), cmap="spring", alpha=0.5, vmax=mask.max()/2)
+    ax2.set_title('Ground truth mask')
+    fig.suptitle(ex_name)
     plt.show()
 
     print(img.max(), mask.max())
 
-    sample = dataset[45+5]
-    img, mask = sample["test"], sample["ground_truth"]
-    plt.imshow(img)
+    sample = test_dataset[45+5]
+    img, mask, ex_name = sample["test"], sample["ground_truth"], sample['class_and_id']
+    
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5), sharex=True, sharey=True)
+    ax1.imshow(torch.permute(img, (1, 2, 0)))
+    ax1.set_title('Raw image')
+    ax2.imshow(torch.permute(img, (1, 2, 0)))
+    ax2.imshow(torch.permute(mask, (1, 2, 0)), cmap="spring", alpha=0.5, vmax=mask.max()/2)
+    ax2.set_title('Ground truth mask')
+    fig.suptitle(ex_name)
     plt.show()
-    plt.imshow(mask, cmap="spring", alpha=0.5, vmax=mask.max()/2)
-    plt.show()
-
-    print(dataset.normal_index, dataset.normal_count)

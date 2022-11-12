@@ -14,3 +14,26 @@
 ## Dataset
 
 [MVTec dataset](https://www.mvtec.com/company/research/datasets/mvtec-ad)
+
+
+## Conda environment
+
+- create the conda environment with the packages defined in 8[equirements.txt](/requirements.txt)
+```sh
+python -m venv venv_taac .
+```
+
+- activate the environment generated
+```sh
+venv_taac
+```
+
+- install pachages
+```sh
+python -m pip install -r requirements.txt
+```
+
+- deactivate the environment
+```sh
+conda deactivate
+```
