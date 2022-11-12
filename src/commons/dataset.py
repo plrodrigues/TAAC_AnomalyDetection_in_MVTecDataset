@@ -1,5 +1,6 @@
 from src.commons.constants import DATA_PATH, DIR_SEP
 
+import logging
 import tarfile, glob, os
 from torch import permute, zeros
 from torch.utils.data import Dataset
@@ -83,10 +84,10 @@ class MVTECTestDataset(Dataset):
             if dir == "good" and flag:
                 self.normal_index = len(test_data)    
                 flag = False
-            for name in glob.glob(os.path.join(current_dir(), path, dir) + DIR_SEP + "*.png"):
+            for name in glob.glob(os.path.join(path, dir) + DIR_SEP + "*.png"):
                 if dir == "good":
                     self.normal_count += 1
-                print('good path: ', name)
+                logging.debug(f'good path: {name}')
                 image = read_image(name, mode=ImageReadMode.RGB)
                 image = permute(image, (1, 2, 0)) # (width, height, channels)
                 test_data.append(image)

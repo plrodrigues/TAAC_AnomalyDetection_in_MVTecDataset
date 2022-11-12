@@ -20,12 +20,17 @@
 
 - create the conda environment with the packages defined in 8[equirements.txt](/requirements.txt)
 ```sh
-conda create --name taac_project --file requirements.txt
+python -m venv venv_taac .
 ```
 
 - activate the environment generated
 ```sh
-source activate taac_project
+venv_taac
+```
+
+- install pachages
+```sh
+python -m pip install -r requirements.txt
 ```
 
 - deactivate the environment

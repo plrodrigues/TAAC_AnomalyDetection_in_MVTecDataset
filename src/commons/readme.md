@@ -12,5 +12,5 @@ export PYTHONPATH=$PWD
 2. Run the python job: 
 
 ```sh
-python src.commons.dataset.py
+python src/commons/dataset.py
 ````

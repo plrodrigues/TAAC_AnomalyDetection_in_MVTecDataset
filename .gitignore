@@ -138,3 +138,7 @@ data/*
 
 # For mac devices
 .DS_Store
+
+# For venv
+*.cfg
+/venv_taac/
