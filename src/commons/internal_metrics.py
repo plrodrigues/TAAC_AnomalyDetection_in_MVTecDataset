@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import skimage
 import logging
-
+from typing import Tuple, List, Dict
 
 
 def get_pred_mask(preds: torch.Tensor, threshold: float) -> torch.Tensor:
@@ -222,4 +222,43 @@ def get_precision_overlap(y_true: np.ndarray, y_score: np.ndarray, threshold: fl
     true_mask = get_real_mask_bin(y_true)
     score_mask = get_pred_mask(y_score, threshold)
     return get_precision_overlap_of_mask(true_mask, score_mask)
-    
+
+
+def fpr_pro_iou_curves(y_true: np.ndarray, y_score: np.ndarray) -> Dict:
+    # check dimensions
+    if y_true.shape != y_score.shape: 
+        raise IndexError(f"y_true and y_score have different dimensions: y_true = {y_true.shape}, y_score = {y_score.shape}")
+
+    # is y_true 0s and/or 1s
+    if not np.isin(y_true, [0,1]).all():
+        raise ValueError(f"y_true does not have binary values: {np.unique(y_true)}")
+
+    # is y_score between 0 and 1
+    if not np.any((y_score >=0) & (y_score <= 1)):
+        raise ValueError(f"y_score does not have values between 0 and 1: max = {y_score.max():.2f}, min = {y_score.min():.2f}")
+
+    # Conditions: 
+    # if y_real only has 0s, then there is NO ANOMALY
+    if np.all(y_true == 0):
+        logging.debug(f"There are no anomalies")
+
+    # if y_real has 1s, then there is ANOMALY
+    if np.any(y_true == 1):
+        logging.debug(f"There are anomalies")
+
+    # Generate the 1s and 0s per threshold
+    # sort scores and corresponding truth values
+    desc_score_indices = np.unique(y_score)
+    fpr, prc, iou, pro, pol = [], [], [], [], []
+    thresholds = []
+    for threshold in desc_score_indices:
+        thresholds.append(threshold)
+        y_score_mask = get_pred_mask(y_score, threshold)
+        y_true_mask = get_real_mask_bin(y_true)
+        fpr.append(get_fpr_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
+        prc.append(get_prc_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
+        iou.append(get_iou_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
+        pro.append(get_pro_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
+        pol.append(get_precision_overlap_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
+
+    return {'fpr': fpr, 'prc': prc, 'iou': iou, 'pro': pro, 'pol': pol, 'threshold': thresholds}
