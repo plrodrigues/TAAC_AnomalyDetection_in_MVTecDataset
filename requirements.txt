@@ -5,8 +5,10 @@ plotly
 torchvision
 torchdata
 torchtext
-sklearn
 matplotlib
 ipykernel
 jupyter
 notebook
+sklearn
+scikit-image
+scikit-learn
