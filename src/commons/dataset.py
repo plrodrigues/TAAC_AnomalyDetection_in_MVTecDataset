@@ -128,7 +128,7 @@ class TinyImageNetDataset(Dataset):
         '''
         Return total number of classes
         '''
-        return self.file_list
+        return len(self.file_list)
 
     def __getitem__(self, idx):
         '''
