@@ -5,6 +5,7 @@ import tarfile, glob, os
 import torch
 from torch.utils.data import Dataset
 from torchvision.io import read_image, ImageReadMode
+from torchvision.transforms import ToTensor
 
 
 def current_dir():
@@ -106,12 +107,69 @@ class MVTECTestDataset(Dataset):
 
         return test_data_img, ground_truth, class_and_id
 
+class TinyImageNetDataset(Dataset):
+    def __init__(self, main_path):
+        self.path = os.path.join(main_path, "tiny-imagenet-200")
+        self.class_id_and_index = self.id2index()
+        self.index_and_name = self.index2name()
+        self.inputs, self.targets = self.load_data()
+   
 
+    def __len__(self):
+        return len(self.targets)
+
+    def __getitem__(self, idx):
+        return {"inputs": self.inputs[idx],
+                "targets": self.targets[idx]}
+
+    def index2name(self):
+        with open(os.path.join(self.path, "words.txt"), "r") as f:
+            lines = f.readlines()
+            lines = [(index, line[10:]) for index, line in enumerate(lines)]
+        index_and_name = {index: name for index, name in lines}
+        return index_and_name
+    
+    def id2index(self):
+        with open(os.path.join(self.path, "words.txt"), "r") as f:
+            lines = f.readlines()                
+            lines = [(line[:9], index) for index, line in enumerate(lines)]
+        class_id_and_index = {class_id: index for class_id, index in lines}
+        return class_id_and_index
+
+    def load_data(self):
+        inputs = []
+        labels = []
+        path = os.path.join(self.path, "train") 
+        for dir in os.listdir(path):
+            for name in glob.glob(os.path.join(path, dir) + DIR_SEP + "images" + DIR_SEP + "*.jpeg"):
+                image = read_image(name, mode=ImageReadMode.RGB)
+                inputs.append(image/255) # Convert to 0-1 scale
+                labels.append(self.class_id_and_index[dir])
+            # logging.debug(f"Finish loading {dir}")
+        return torch.stack(inputs), torch.tensor(labels)
+
+# Testing for TinyImageNet
 if __name__ == "__main__":
 
     # Define the logging level
-    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.DEBUG)
 
+    tiny_dataset = TinyImageNetDataset(DATA_PATH)
+
+    logging.debug(len(tiny_dataset))
+    # logging.debug(tiny_dataset.class_id_and_index)
+    # logging.debug(tiny_dataset.index_and_name)
+    logging.debug(tiny_dataset[0])
+
+    import matplotlib.pyplot as plt
+    sample = tiny_dataset[7624]
+    img, label = sample["inputs"], sample["targets"]
+    plt.imshow(torch.permute(img, (1, 2, 0)))
+    plt.title(f"{label}, size: {img.shape}")
+    plt.show()
+
+# Testing for other datasaets
+if False:
     # extract_tar(TARFILE_PATH, DATA_PATH)
     import matplotlib.pyplot as plt
     cat = "capsule"
