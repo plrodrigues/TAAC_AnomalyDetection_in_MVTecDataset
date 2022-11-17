@@ -1,6 +1,3 @@
-import sys
-sys.path.insert(0, ".")
-
 from src.commons.constants import DATA_PATH, DIR_SEP
 
 import logging
@@ -124,12 +121,14 @@ class TinyImageNetDataset(Dataset):
         self.index_to_id = self.get_index_to_id()
         self.index_to_name = self.get_index_to_name()
 
+        self.file_list, self.file_classes = self.get_file_list()
+
    
     def __len__(self):
         '''
         Return total number of classes
         '''
-        return len(self.index_to_id)
+        return self.file_list
 
     def __getitem__(self, idx):
         '''
@@ -137,32 +136,15 @@ class TinyImageNetDataset(Dataset):
         Output:
             dict - "inputs" for the data, "targets" for the class labels
         '''
-        inputs = []
+        path = self.file_list[idx]
+        image = read_image(path, mode=ImageReadMode.RGB)
+        target = self.file_classes[idx]
 
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-        
-        # Sample which classes we will draw images from
-        targets = torch.randint(0, max(self.index_to_id)+1, size=(len(idx),)).tolist()
-        classes_to_load = [self.index_to_id[index] for index in targets]
+        if self.transforms is not None:
+            image = self.transforms(image)
 
-        for class_name in classes_to_load:
-            path = os.path.join(self.root_dir, "train", class_name, "images")
-            
-            # Pick random image within the class
-            names = glob.glob(path + DIR_SEP + "*.jpeg")
-            image_name = names[torch.randint(0, len(names), size=(1, ))]
-
-            image = read_image(image_name, mode=ImageReadMode.RGB)
-
-            if self.transforms is not None:
-                image = self.transforms(image)
-
-            inputs.append(image)
-        
-        inputs = torch.stack(inputs)
-        return {"inputs": inputs,
-                "targets": targets}
+        return {"inputs": image,
+                "targets": target}
 
     def get_ids(self):
         path = os.path.join(self.root_dir, "train", "*")
@@ -185,6 +167,21 @@ class TinyImageNetDataset(Dataset):
         index_and_id = {index: class_id for index, class_id in enumerate(self.ids)}
         return index_and_id
 
+    def get_file_list(self):
+        '''
+        Output:
+            files - list, contains the path for each image
+            classes - list, contains the corresponding class index
+        '''
+        files = []
+        classes = []
+        for index, class_id in self.index_to_id.items():
+            path = os.path.join(self.root_dir, "train", class_id, "images")
+            names = glob.glob(path + DIR_SEP + "*.jpeg")
+            files += names
+            classes += [index]*len(names)
+        return files, classes
+
 # Testing for TinyImageNet
 if __name__ == "__main__":
 
@@ -205,11 +202,10 @@ if __name__ == "__main__":
 
     logging.getLogger().setLevel(logging.INFO)
     import matplotlib.pyplot as plt
-    batch = torch.arange(0, 10)
-    sample = tiny_dataset[batch]
+    sample = tiny_dataset[1000]
     img, label = sample["inputs"], sample["targets"]
-    plt.imshow(torch.permute(img[0], (1, 2, 0)))
-    plt.title(f"{tiny_dataset.index_to_name[label[0]]}, size: {img.shape}")
+    plt.imshow(torch.permute(img, (1, 2, 0)))
+    plt.title(f"{tiny_dataset.index_to_name[label]}, size: {img.shape}")
     plt.show()
 
 # Testing for other datasaets
