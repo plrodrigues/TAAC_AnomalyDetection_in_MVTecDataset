@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, ".")
+
 from src.commons.constants import DATA_PATH, DIR_SEP
 
 import logging
@@ -108,45 +111,79 @@ class MVTECTestDataset(Dataset):
         return test_data_img, ground_truth, class_and_id
 
 class TinyImageNetDataset(Dataset):
-    def __init__(self, main_path):
-        self.path = os.path.join(main_path, "tiny-imagenet-200")
-        self.class_id_and_index = self.id2index()
-        self.index_and_name = self.index2name()
-        self.inputs, self.targets = self.load_data()
-   
+    def __init__(self, root_dir, transforms=None):
+        '''
+        Parameters:
+            root_dir: str, directory where tiny-imagenet-200 is located
+            transforms: torchvision.transforms sequence of processing steps to apply at each image during loading
+        '''
+        self.root_dir = os.path.join(root_dir, "tiny-imagenet-200")
+        self.transforms = transforms
+        
+        self.ids = self.get_ids()
+        self.index_to_id = self.get_index_to_id()
+        self.index_to_name = self.get_index_to_name()
 
+   
     def __len__(self):
-        return len(self.targets)
+        '''
+        Return total number of classes
+        '''
+        return len(self.index_to_id)
 
     def __getitem__(self, idx):
-        return {"inputs": self.inputs[idx],
-                "targets": self.targets[idx]}
+        '''
+        Randomly samples N images from the available data
+        Output:
+            dict - "inputs" for the data, "targets" for the class labels
+        '''
+        inputs = []
 
-    def index2name(self):
-        with open(os.path.join(self.path, "words.txt"), "r") as f:
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        
+        # Sample which classes we will draw images from
+        targets = torch.randint(0, max(self.index_to_id)+1, size=(len(idx),)).tolist()
+        classes_to_load = [self.index_to_id[index] for index in targets]
+
+        for class_name in classes_to_load:
+            path = os.path.join(self.root_dir, "train", class_name, "images")
+            
+            # Pick random image within the class
+            names = glob.glob(path + DIR_SEP + "*.jpeg")
+            image_name = names[torch.randint(0, len(names), size=(1, ))]
+
+            image = read_image(image_name, mode=ImageReadMode.RGB)
+
+            if self.transforms is not None:
+                image = self.transforms(image)
+
+            inputs.append(image)
+        
+        inputs = torch.stack(inputs)
+        return {"inputs": inputs,
+                "targets": targets}
+
+    def get_ids(self):
+        path = os.path.join(self.root_dir, "train", "*")
+        ids = [x for x in map(os.path.basename, glob.glob(path))]
+        return ids
+
+    def get_index_to_name(self):
+        index_and_name = {}
+        with open(os.path.join(self.root_dir, "words.txt"), "r") as f:
             lines = f.readlines()
-            lines = [(index, line[10:]) for index, line in enumerate(lines)]
-        index_and_name = {index: name for index, name in lines}
+            class_ids = [line[:9] for line in lines] # all classes listed in words.txt
+            class_names = [line[10:] for line in lines]
+            for index, class_id in enumerate(self.ids): # only classes in data/train
+                x = class_ids.index(class_id)
+                name = class_names[x]
+                index_and_name[index] = name
         return index_and_name
     
-    def id2index(self):
-        with open(os.path.join(self.path, "words.txt"), "r") as f:
-            lines = f.readlines()                
-            lines = [(line[:9], index) for index, line in enumerate(lines)]
-        class_id_and_index = {class_id: index for class_id, index in lines}
-        return class_id_and_index
-
-    def load_data(self):
-        inputs = []
-        labels = []
-        path = os.path.join(self.path, "train") 
-        for dir in os.listdir(path):
-            for name in glob.glob(os.path.join(path, dir) + DIR_SEP + "images" + DIR_SEP + "*.jpeg"):
-                image = read_image(name, mode=ImageReadMode.RGB)
-                inputs.append(image/255) # Convert to 0-1 scale
-                labels.append(self.class_id_and_index[dir])
-            # logging.debug(f"Finish loading {dir}")
-        return torch.stack(inputs), torch.tensor(labels)
+    def get_index_to_id(self):
+        index_and_id = {index: class_id for index, class_id in enumerate(self.ids)}
+        return index_and_id
 
 # Testing for TinyImageNet
 if __name__ == "__main__":
@@ -155,17 +192,24 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
 
     tiny_dataset = TinyImageNetDataset(DATA_PATH)
+    
+    temp = tiny_dataset.index_to_id.items()
+    temp = list(temp)
+    logging.debug(F"index to id {temp[:3]}")
+    logging.debug(len(temp))
 
-    logging.debug(len(tiny_dataset))
-    # logging.debug(tiny_dataset.class_id_and_index)
-    # logging.debug(tiny_dataset.index_and_name)
-    logging.debug(tiny_dataset[0])
+    temp = tiny_dataset.index_to_name.items()
+    temp = list(temp)
+    logging.debug(f"index to name {temp[:3]}")
+    logging.debug(len(temp))
 
+    logging.getLogger().setLevel(logging.INFO)
     import matplotlib.pyplot as plt
-    sample = tiny_dataset[7624]
+    batch = torch.arange(0, 10)
+    sample = tiny_dataset[batch]
     img, label = sample["inputs"], sample["targets"]
-    plt.imshow(torch.permute(img, (1, 2, 0)))
-    plt.title(f"{label}, size: {img.shape}")
+    plt.imshow(torch.permute(img[0], (1, 2, 0)))
+    plt.title(f"{tiny_dataset.index_to_name[label[0]]}, size: {img.shape}")
     plt.show()
 
 # Testing for other datasaets
