@@ -18,7 +18,7 @@
 
 ## Conda environment
 
-- create the conda environment with the packages defined in [equirements.txt](/requirements.txt)
+- create the conda environment with the packages defined in [requirements.txt](/requirements.txt)
 ```sh
 python -m venv venv_taac .
 ```
