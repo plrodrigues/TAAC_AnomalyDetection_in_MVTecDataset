@@ -118,74 +118,70 @@ class MVTECViTDataset(Dataset):
         self.path = os.path.join(main_path, category)
         self.transforms = transforms
 
-        self.data, self.ground_truth, self.class_and_id, self.weak_labels = self.load_data()
+        self.file_list, self.class_and_id, self.mask_list = self.get_files()
         
     def __len__(self):
-        return len(self.data)
+        return len(self.file_list)
 
     def __getitem__(self, idx):
-        return {"inputs": self.data[idx],
-                "ground_truth": self.ground_truth[idx],
-                "class_and_id": self.class_and_id[idx],
-                "labels": self.weak_labels[idx]}
 
-    def load_data(self):
+        file_name = self.file_list[idx]
+        img_class_id = self.class_and_id[idx]
+        mask_name = self.mask_list[idx]
 
+        logging.info(f"file name: {file_name}")
+        logging.info(f"mask name: {mask_name}")
+        logging.info(f"class id: {img_class_id}")
+
+        image = read_image(file_name, mode=ImageReadMode.RGB)
+        if self.transforms is not None:
+            image = self.transforms(image)
+
+        logging.info(f"image size: {image.shape}")
+
+        if 'good' in mask_name: 
+            mask = torch.zeros(image.shape)
+            label = [0]
+        else: 
+            mask = read_image(mask_name, mode=ImageReadMode.RGB)
+            label = [1]
+            if mask.shape != image.shape:
+                t = transforms.Resize(image.shape[:-2])
+                mask = t(mask)
+                    
+        return {"inputs": image,
+                "ground_truth": mask,
+                "class_and_id": img_class_id,
+                "labels": label}
+
+    def get_files(self):
+        
+        file_list = []
+        mask_list = []
         class_and_id = []
 
-        ## Load data from /train folder
-        train_data_img = []
+        ## Fetch files from /train folder
         train_path = os.path.join(self.path, "train") 
         for dir in os.listdir(train_path):
             for name in glob.glob(os.path.join(train_path, dir) + DIR_SEP + "*.png"):
-                image = read_image(name, mode=ImageReadMode.RGB)
-                if self.transforms is not None:
-                    image = self.transforms(image)
-                train_data_img.append(image)
+                file_list.append(name)
                 class_and_id.append(name.replace(train_path + DIR_SEP, '').replace('.png', ''))
 
-        ## Load data from /test folder
-        test_data_img = []
+        ## Fetch files from /test folder
         test_path = os.path.join(self.path, "test") 
-
-        # test images
         for dir in os.listdir(test_path): # for all test categories (crack, poke, scratch, ...), including good
             for name in glob.glob(os.path.join(test_path, dir) + DIR_SEP + "*.png"):
-                image = read_image(name, mode=ImageReadMode.RGB)
-                if self.transforms is not None:
-                    image = self.transforms(image)
-                test_data_img.append(image)
+                file_list.append(name)
                 class_and_id.append(name.replace(test_path + DIR_SEP, '').replace('.png', ''))
 
-        logging.debug(f"{len(class_and_id)} test images loaded")
-        
         # ground truth masks
         mask_path = os.path.join(self.path, "ground_truth")
-        logging.debug(f"Loading {len(class_and_id)} masks, from {mask_path} dir")
 
-        weak_labels = []
-        ground_truth = []
-        data_img = train_data_img + test_data_img
         for img_class_id in class_and_id:
             mask_name = os.path.join(mask_path, img_class_id) + "_mask.png"
-            logging.debug(f'Loading respective masks: {mask_name}')
-            if 'good' in mask_name: 
-                logging.debug(f'{img_class_id}, good')
-                image = torch.zeros(test_data_img[0].shape)
-                weak_labels.append(1)
-            else: 
-                logging.debug(f'{img_class_id}, not good')
-                image = read_image(mask_name, mode=ImageReadMode.RGB)
-                if self.transforms is not None:
-                    for t in self.transforms.transforms:
-                        if isinstance(t, transforms.Resize):
-                            image = t(image)
+            mask_list.append(mask_name)
 
-                weak_labels.append(0)
-            ground_truth.append(image)
-
-        return data_img, ground_truth, class_and_id, weak_labels
-
+        return file_list, class_and_id, mask_list
 
 
 class TinyImageNetDataset(Dataset):
@@ -279,9 +275,9 @@ if __name__ == "__main__":
     cat = "capsule"
     test_dataset = MVTECViTDataset(DATA_PATH, cat, transforms=transf)
 
-    print(len(test_dataset), len(test_dataset.data), len(test_dataset.ground_truth), len(test_dataset.class_and_id))
+    print(len(test_dataset))
     sample = test_dataset[219 + 3]
-    img, mask, ex_name, labels = sample["test"], sample["ground_truth"], sample['class_and_id'], sample["labels"]
+    img, mask, ex_name, labels = sample["inputs"], sample["ground_truth"], sample['class_and_id'], sample["labels"]
     
     fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5), sharex=True, sharey=True)
     ax1.imshow(torch.permute(img, (1, 2, 0)))
@@ -295,7 +291,7 @@ if __name__ == "__main__":
     print(img.max(), mask.max())
 
     sample = test_dataset[50]
-    img, mask, ex_name, labels = sample["test"], sample["ground_truth"], sample['class_and_id'], sample["labels"]
+    img, mask, ex_name, labels = sample["inputs"], sample["ground_truth"], sample['class_and_id'], sample["labels"]
     
     fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5), sharex=True, sharey=True)
     ax1.imshow(torch.permute(img, (1, 2, 0)))
