@@ -146,8 +146,12 @@ class MVTECViTDataset(Dataset):
             mask = read_image(mask_name, mode=ImageReadMode.RGB)
             label = [1]
             if mask.shape != image.shape:
-                t = transforms.Resize(image.shape[:-2])
+                t = transforms.Resize(image.shape[1:])
+                
+                logging.info(f"resizing mask, before {mask.shape} after {t(mask).shape}")
                 mask = t(mask)
+
+        logging.info(f"mask size: {mask.shape}")
                     
         return {"inputs": image,
                 "ground_truth": mask,
