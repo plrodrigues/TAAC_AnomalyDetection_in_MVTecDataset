@@ -129,15 +129,15 @@ class MVTECViTDataset(Dataset):
         img_class_id = self.class_and_id[idx]
         mask_name = self.mask_list[idx]
 
-        logging.info(f"file name: {file_name}")
-        logging.info(f"mask name: {mask_name}")
-        logging.info(f"class id: {img_class_id}")
+        logging.debug(f"file name: {file_name}")
+        logging.debug(f"mask name: {mask_name}")
+        logging.debug(f"class id: {img_class_id}")
 
         image = read_image(file_name, mode=ImageReadMode.RGB)
         if self.transforms is not None:
             image = self.transforms(image)
 
-        logging.info(f"image size: {image.shape}")
+        logging.debug(f"image size: {image.shape}")
 
         if 'good' in mask_name: 
             mask = torch.zeros(image.shape)
@@ -148,10 +148,10 @@ class MVTECViTDataset(Dataset):
             if mask.shape != image.shape:
                 t = transforms.Resize(image.shape[1:])
                 
-                logging.info(f"resizing mask, before {mask.shape} after {t(mask).shape}")
+                logging.debug(f"resizing mask, before {mask.shape} after {t(mask).shape}")
                 mask = t(mask)
 
-        logging.info(f"mask size: {mask.shape}")
+        logging.debug(f"mask size: {mask.shape}")
                     
         return {"inputs": image,
                 "ground_truth": mask,
