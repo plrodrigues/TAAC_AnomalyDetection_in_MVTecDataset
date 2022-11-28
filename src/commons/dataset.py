@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '.')
+
 from src.commons.constants import DATA_PATH, DIR_SEP
 
 import logging
@@ -5,7 +8,8 @@ import tarfile, glob, os
 import torch
 from torch.utils.data import Dataset
 from torchvision.io import read_image, ImageReadMode
-from torchvision.transforms import ToTensor
+import torchvision.transforms as transforms
+
 
 
 def current_dir():
@@ -110,8 +114,9 @@ class MVTECTestDataset(Dataset):
 
 class MVTECViTDataset(Dataset):
 
-    def __init__(self, main_path, category):
+    def __init__(self, main_path, category, transforms=None):
         self.path = os.path.join(main_path, category)
+        self.transforms = transforms
 
         self.data, self.ground_truth, self.class_and_id, self.weak_labels = self.load_data()
         
@@ -134,6 +139,8 @@ class MVTECViTDataset(Dataset):
         for dir in os.listdir(train_path):
             for name in glob.glob(os.path.join(train_path, dir) + DIR_SEP + "*.png"):
                 image = read_image(name, mode=ImageReadMode.RGB)
+                if self.transforms is not None:
+                    image = self.transforms(image)
                 train_data_img.append(image)
                 class_and_id.append(name.replace(train_path + DIR_SEP, '').replace('.png', ''))
 
@@ -145,6 +152,8 @@ class MVTECViTDataset(Dataset):
         for dir in os.listdir(test_path): # for all test categories (crack, poke, scratch, ...), including good
             for name in glob.glob(os.path.join(test_path, dir) + DIR_SEP + "*.png"):
                 image = read_image(name, mode=ImageReadMode.RGB)
+                if self.transforms is not None:
+                    image = self.transforms(image)
                 test_data_img.append(image)
                 class_and_id.append(name.replace(test_path + DIR_SEP, '').replace('.png', ''))
 
@@ -167,6 +176,11 @@ class MVTECViTDataset(Dataset):
             else: 
                 logging.debug(f'{img_class_id}, not good')
                 image = read_image(mask_name, mode=ImageReadMode.RGB)
+                if self.transforms is not None:
+                    for t in self.transforms.transforms:
+                        if isinstance(t, transforms.Resize):
+                            image = t(image)
+
                 weak_labels.append(0)
             ground_truth.append(image)
 
@@ -256,9 +270,14 @@ if __name__ == "__main__":
     # Define the logging level
     logging.getLogger().setLevel(logging.INFO)
 
+    transf = transforms.Compose([
+        transforms.Resize((100, 100)),
+        transforms.ColorJitter(brightness=0.1, hue=0.2)
+    ]) 
+
     import matplotlib.pyplot as plt
     cat = "capsule"
-    test_dataset = MVTECViTDataset(DATA_PATH, cat)
+    test_dataset = MVTECViTDataset(DATA_PATH, cat, transforms=transf)
 
     print(len(test_dataset), len(test_dataset.data), len(test_dataset.ground_truth), len(test_dataset.class_and_id))
     sample = test_dataset[219 + 3]
