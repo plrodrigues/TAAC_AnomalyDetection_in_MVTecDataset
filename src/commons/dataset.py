@@ -141,10 +141,10 @@ class MVTECViTDataset(Dataset):
 
         if 'good' in mask_name: 
             mask = torch.zeros(image.shape)
-            label = [0]
+            label = torch.tensor([0], dtype=torch.int8)
         else: 
             mask = read_image(mask_name, mode=ImageReadMode.RGB)
-            label = [1]
+            label = torch.tensor([1], dtype=torch.int8)
             if mask.shape != image.shape:
                 t = transforms.Resize(image.shape[1:])
                 
