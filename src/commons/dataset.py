@@ -124,7 +124,7 @@ class MVTECViTDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return {"test": self.data[idx],
+        return {"inputs": self.data[idx],
                 "ground_truth": self.ground_truth[idx],
                 "class_and_id": self.class_and_id[idx],
                 "labels": self.weak_labels[idx]}
