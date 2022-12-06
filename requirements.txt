@@ -5,6 +5,7 @@ plotly
 torchvision
 torchdata
 torchtext
+torchmetrics
 matplotlib
 ipykernel
 jupyter
@@ -12,3 +13,5 @@ notebook
 sklearn
 scikit-image
 scikit-learn
+albumentations
+einops
