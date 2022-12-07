@@ -151,3 +151,10 @@ results/vit_finetuning/simple_vit_ft_noname.pt
 results/vit_finetuning/simple_vit_ft_cable.pt
 results/vit_finetuning/simple_vit_ft_grid.pt
 results/vit_finetuning/simple_vit_ft_metal_nut.pt
+/bin
+
+# trained models
+/results/autoencoder_models/
+
+# tmp images
+/results_img/
