@@ -149,3 +149,4 @@ data/*
 # Dont push some of the results
 results/vit_finetuning/simple_vit_ft_noname.pt
 results/vit_finetuning/simple_vit_ft_cable.pt
+results/vit_finetuning/simple_vit_ft_grid.pt
