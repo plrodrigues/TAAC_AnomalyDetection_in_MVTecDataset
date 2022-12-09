@@ -230,7 +230,7 @@ def fpr_pro_iou_curves(y_true: np.ndarray, y_score: np.ndarray) -> Dict:
         raise IndexError(f"y_true and y_score have different dimensions: y_true = {y_true.shape}, y_score = {y_score.shape}")
 
     # is y_true 0s and/or 1s
-    if not np.isin(y_true, [0,1]).all():
+    if not np.isin(y_true, [0.0,1.0]).all():
         raise ValueError(f"y_true does not have binary values: {np.unique(y_true)}")
 
     # is y_score between 0 and 1
@@ -249,9 +249,11 @@ def fpr_pro_iou_curves(y_true: np.ndarray, y_score: np.ndarray) -> Dict:
     # Generate the 1s and 0s per threshold
     # sort scores and corresponding truth values
     desc_score_indices = np.unique(y_score)
+    # to reduce computational time
+    desc_score_indices_3 = np.unique(np.around(desc_score_indices, decimals=3))
     fpr, prc, iou, pro, pol = [], [], [], [], []
     thresholds = []
-    for threshold in desc_score_indices:
+    for threshold in desc_score_indices_3:
         thresholds.append(threshold)
         y_score_mask = get_pred_mask(y_score, threshold)
         y_true_mask = get_real_mask_bin(y_true)
