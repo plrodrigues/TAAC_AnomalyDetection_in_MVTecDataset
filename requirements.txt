@@ -6,6 +6,7 @@ torchvision
 torchdata
 torchtext
 torchmetrics
+vit-pytorch
 matplotlib
 ipykernel
 jupyter
