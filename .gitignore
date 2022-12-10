@@ -149,6 +149,7 @@ data/*
 
 # trained models
 /results/autoencoder_models/
+/results/autoencoder_pro_fpr/
 
 # tmp images
 /results_img/
