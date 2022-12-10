@@ -149,7 +149,11 @@ data/*
 
 # trained models
 /results/autoencoder_models/
+<<<<<<< HEAD
 /results/vit_finetuning/*
+=======
+/results/autoencoder_pro_fpr/
+>>>>>>> main
 
 # tmp images
 /results_img/

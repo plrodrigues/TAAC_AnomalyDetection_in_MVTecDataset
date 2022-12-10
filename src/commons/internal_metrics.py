@@ -4,6 +4,8 @@ import numpy as np
 import skimage
 import logging
 from typing import Tuple, List, Dict
+from sklearn import metrics
+from src.commons.segmentation_utils import get_filled_score_map
 
 
 def get_pred_mask(preds: torch.Tensor, threshold: float) -> torch.Tensor:
@@ -170,7 +172,7 @@ def get_pro_of_mask(true_mask: np.ndarray, score_mask: np.ndarray) -> float:
         
         pro += p_i_c_ik_conn_area/c_ik_conn_area
     if real_conn_components.max() == 0:
-        logging.warning(f"PRO: 0, with real_conn_components.max() = {real_conn_components.max()}")
+        logging.debug(f"PRO: 0, with real_conn_components.max() = {real_conn_components.max()}")
         return 0
     else:
         pro = pro / (real_conn_components.max())
@@ -224,7 +226,7 @@ def get_precision_overlap(y_true: np.ndarray, y_score: np.ndarray, threshold: fl
     return get_precision_overlap_of_mask(true_mask, score_mask)
 
 
-def fpr_pro_iou_curves(y_true: np.ndarray, y_score: np.ndarray) -> Dict:
+def fpr_pro_iou_curves(y_true: np.ndarray, y_score: np.ndarray, fill_gaps=False) -> Dict:
     # check dimensions
     if y_true.shape != y_score.shape: 
         raise IndexError(f"y_true and y_score have different dimensions: y_true = {y_true.shape}, y_score = {y_score.shape}")
@@ -250,17 +252,28 @@ def fpr_pro_iou_curves(y_true: np.ndarray, y_score: np.ndarray) -> Dict:
     # sort scores and corresponding truth values
     desc_score_indices = np.unique(y_score)
     # to reduce computational time
-    desc_score_indices_3 = np.unique(np.around(desc_score_indices, decimals=3))
+    desc_score_indices_3 = np.unique(np.around(desc_score_indices, decimals=2))
     fpr, prc, iou, pro, pol = [], [], [], [], []
     thresholds = []
+    fpr.append(0.3)
+    pro.append(1.0)
     for threshold in desc_score_indices_3:
-        thresholds.append(threshold)
         y_score_mask = get_pred_mask(y_score, threshold)
+        if fill_gaps:
+            y_score_mask = get_filled_score_map(y_score, y_score_mask, threshold)
         y_true_mask = get_real_mask_bin(y_true)
-        fpr.append(get_fpr_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
-        prc.append(get_prc_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
-        iou.append(get_iou_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
-        pro.append(get_pro_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
-        pol.append(get_precision_overlap_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
+        fpr_x = get_fpr_of_mask(true_mask=y_true_mask, score_mask=y_score_mask)
+        if fpr_x <= 0.3 and fpr_x > 0:
+            thresholds.append(threshold)
+            fpr.append(fpr_x)
+            #prc.append(get_prc_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
+            #iou.append(get_iou_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
+            pro.append(get_pro_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
+            #pol.append(get_precision_overlap_of_mask(true_mask=y_true_mask, score_mask=y_score_mask))
+    # rescale the pro accordingly
+    max_pro = np.array(pro).max()
+    scaled_pro = [x/max_pro for x in pro]
+    
+    pro_frp_area_curve = metrics.auc(fpr, scaled_pro)
 
-    return {'fpr': fpr, 'prc': prc, 'iou': iou, 'pro': pro, 'pol': pol, 'threshold': thresholds}
+    return {'fpr': fpr, 'prc': prc, 'iou': iou, 'pro': scaled_pro, 'pol': pol, 'threshold': thresholds, 'proauc': pro_frp_area_curve}
