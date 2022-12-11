@@ -145,14 +145,14 @@ data/*
 # For venv
 *.cfg
 /venv_taac/
+/bin/
 
-# trained models
-/results/autoencoder_models/
+# trained models and results
+/results/autoencoder_img_results/*
+/results/autoencoder_models/*
+/results/autoencoder_pro_fpr/*
+/results/f-ano-gan_results/*
 /results/vit_finetuning/*
-/results/autoencoder_pro_fpr/
-
-# tmp images
-/results_img/
 
 # image outpus from VIT
 /results_img_vit/*
