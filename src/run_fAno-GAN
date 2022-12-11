@@ -1,0 +1,38 @@
+#!/bin/bash
+
+n_epochs_gen="150"
+n_epochs_disc="50"
+
+seed="1"
+
+datasets="bottle cable capsule carpet grid hazelnut leather metal_nut pill screw tile toothbrush transistor wood zipper"
+
+for dataset in ${datasets}; do 
+    echo $dataset
+    python f-AnoGAN/mvtec_ad/train_wgangp.py $dataset --seed $seed --n_epochs $n_epochs_gen
+    python f-AnoGAN/mvtec_ad/train_encoder_izif.py $dataset --seed $seed --sample_interval 50 --n_epochs $n_epochs_disc
+    python f-AnoGAN/mvtec_ad/test_anomaly_detection.py $dataset
+    python f-AnoGAN/mvtec_ad/save_compared_images.py $dataset --n_iters 0 --n_grid_lines 10
+    mv ./results ./${dataset}-results
+    #python fAno-GAN.py
+done
+
+#while getopts "h:d:" o; do
+#    case "${o}" in
+#        h)
+#            echo "USAGE"
+#            ;;
+#        d)
+#            dataset=${OPTARG}
+#            echo $dataset
+#            python f-AnoGAN/mvtec_ad/train_wgangp.py $dataset --seed $seed --n_epochs $n_epochs_gen
+#            python f-AnoGAN/mvtec_ad/train_encoder_izif.py $dataset --seed $seed --sample_interval 50 --n_epochs $n_epochs_disc
+#            python f-AnoGAN/mvtec_ad/test_anomaly_detection.py $dataset
+#            python f-AnoGAN/mvtec_ad/save_compared_images.py $dataset --n_iters 0 --n_grid_lines 10
+#            python fAno-GAN.py
+#            ;;
+#        *)
+#            echo "USAGE"
+#            ;;
+#    esac
+#done

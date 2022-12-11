@@ -146,7 +146,6 @@ data/*
 *.cfg
 /venv_taac/
 
-
 # trained models
 /results/autoencoder_models/
 /results/vit_finetuning/*
